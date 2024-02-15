@@ -1,4 +1,4 @@
-name: Terraform Setup
+name: Terraform workflow
 
 on:
   pull_request:
