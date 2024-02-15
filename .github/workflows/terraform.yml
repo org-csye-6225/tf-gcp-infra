@@ -24,3 +24,6 @@ jobs:
 
       - name: Validate Terraform Configuration
         run: terraform validate
+
+      - name: Plan Terraform Deployment
+        run: terraform plan -out=tfplan
