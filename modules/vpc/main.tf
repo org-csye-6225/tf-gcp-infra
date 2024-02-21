@@ -13,7 +13,7 @@ resource "google_compute_subnetwork" "subnet" {
   project       = var.project
   network       = google_compute_network.vpc.id
   depends_on    = [google_compute_network.vpc]
-}
+
 
 resource "google_compute_route" "default_route" {
   count            = var.internet_gateway ? 1 : 0
