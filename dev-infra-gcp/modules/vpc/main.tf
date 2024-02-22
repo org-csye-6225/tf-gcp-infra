@@ -31,7 +31,7 @@ resource "google_compute_instance" "compute-1-csye6225" {
     device_name = "compute-1-csye6225"
 
     initialize_params {
-      image = "projects/tf-project-csye-6225/global/images/custom-image-with-mysql"
+      image = "projects/dev-csye6225-415015/global/images/custom-image-with-mysql"
       size  = 100
       type  = "pd-balanced"
     }
@@ -64,7 +64,7 @@ resource "google_compute_instance" "compute-1-csye6225" {
   }
 
   service_account {
-    email  = "csye6225-service-for-packer@tf-project-csye-6225.iam.gserviceaccount.com"
+    email  = "dev-service@dev-csye6225-415015.iam.gserviceaccount.com"
     scopes = ["https://www.googleapis.com/auth/cloud-platform"]
   }
 
