@@ -3,7 +3,7 @@ variable "project" {}
 variable "region" {}
 variable "routing_mode" {}
 variable "internet_gateway" {
-  default = false
+  default = true
 }
 variable "subnets" {
   type = list(object({

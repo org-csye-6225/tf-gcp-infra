@@ -16,7 +16,6 @@ variable "private_subnet" {
 variable "public_subnet" {
     type = string
 }
-
 variable "vpcs" {
     description = "A map of VPC configurations."
 }
