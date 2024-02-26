@@ -1,6 +1,10 @@
 variable "project_id" {
     type = string
 }
+variable "credentials_file" {
+}
+
+
 variable "region_id" {
     type = string
 }
