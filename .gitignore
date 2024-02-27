@@ -5,6 +5,9 @@
 *.tfstate
 *.tfstate.*
 
+# Ignore generated credentials from google-github-actions/auth
+gha-creds-*.json
+
 */.DS_Store
 .DS_Store
 *.DS_Store

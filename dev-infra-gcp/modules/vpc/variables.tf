@@ -1,9 +1,19 @@
-variable "name" {}
-variable "project" {}
-variable "region" {}
-variable "routing_mode" {}
+variable "name" {
+   type = string
+}
+variable "project" {
+   type = string
+}
+variable "region" {
+   type = string
+}
+variable "routing_mode" { 
+  type = string
+}
 variable "internet_gateway" {
-  default = false
+  default = true
+}
+variable "credentials_file" {
 }
 variable "subnets" {
   type = list(object({
