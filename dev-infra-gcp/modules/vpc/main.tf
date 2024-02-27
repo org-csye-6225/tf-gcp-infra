@@ -14,6 +14,9 @@ resource "google_compute_subnetwork" "subnet" {
   project       = var.project
   network       = google_compute_network.vpc.self_link
   depends_on    = [google_compute_network.vpc]
+  private_ip_google_access = true
+  # private_ip_google_access = (count.index == 1) ? 1 : 0
+
 }
 
 resource "google_compute_route" "default_route" {
@@ -38,9 +41,6 @@ resource "google_compute_instance" "compute-csye6225" {
     }
 
     mode = "READ_WRITE"
-  }
-  labels = {
-    goog-ec-src = "vm_add-tf"
   }
 
   machine_type = "e2-standard-4"
@@ -88,4 +88,53 @@ resource "google_compute_firewall" "deny_ssh" {
 
   source_ranges = ["0.0.0.0/0"]
   depends_on = [google_compute_network.vpc]
+}
+
+
+resource "google_compute_global_address" "default" {
+  project      = var.project
+  name         = "private-google-access-ip"
+  address_type = "INTERNAL"
+  purpose      = "VPC_PEERING"
+  prefix_length = 24
+  network      = google_compute_network.vpc.id
+  depends_on = [google_compute_network.vpc]
+}
+ 
+ 
+resource "google_service_networking_connection" "default" {
+  network                 = google_compute_network.vpc.id
+  service                 = "servicenetworking.googleapis.com"
+  reserved_peering_ranges = [google_compute_global_address.default.name]
+  depends_on = [google_compute_network.vpc]
+}
+ 
+resource "google_sql_database_instance" "db_instance_2" {
+  name             = "db-instance-2"
+  database_version = "MYSQL_8_0"
+  region           = var.region
+
+  settings {
+    tier = "db-n1-standard-1"
+
+    ip_configuration {
+      ipv4_enabled = false 
+      private_network = google_compute_network.vpc.self_link
+    }
+  }
+  deletion_protection = false
+  depends_on = [google_service_networking_connection.default]
+}
+
+resource "google_sql_database" "mysql_db_1" {
+  name     = "mysql_db_1"
+  instance = google_sql_database_instance.db_instance_2.name 
+  depends_on = [google_sql_database_instance.db_instance_2]
+}
+
+resource "google_sql_user" "mysql_user_1" {
+  name     = "mysql_user_1"
+  instance = google_sql_database_instance.db_instance_2.name 
+  password = "1234@Data" 
+  depends_on = [google_sql_database_instance.db_instance_2]
 }
