@@ -76,11 +76,15 @@ resource "google_compute_firewall" "allow_http" {
   depends_on = [google_compute_network.vpc]
 }
 
-resource "google_compute_firewall" "deny_ssh" {
+resource "google_compute_firewall" "deny" {
   name    = "deny-ssh"
   network = google_compute_network.vpc.self_link
   project = var.project
-
+  
+  deny {
+     protocol = "all"
+  }
+  
   deny {
     protocol = "tcp"
     ports    = ["22"] 
