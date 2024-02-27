@@ -32,7 +32,7 @@ resource "google_compute_instance" "compute-csye6225" {
     device_name = "compute-csye6225"
 
     initialize_params {
-      image = "projects/dev-csye6225-415015/global/images/custom-image-with-mysql"
+      image = "projects/tf-project-csye-6225/global/images/custom-image-with-mysql"
       size  = 100
       type  = "pd-balanced"
     }
@@ -54,7 +54,7 @@ resource "google_compute_instance" "compute-csye6225" {
     subnetwork = google_compute_subnetwork.subnet[0].self_link
   }
   service_account {
-    email  = "dev-service@dev-csye6225-415015.iam.gserviceaccount.com"
+    email  = "csye6225-service-for-packer@tf-project-csye-6225.iam.gserviceaccount.com"
     scopes = ["https://www.googleapis.com/auth/cloud-platform"]
   }
 
