@@ -29,68 +29,6 @@ resource "google_compute_route" "default_route" {
   depends_on       = [google_compute_network.vpc]
 }
 
-
-resource "google_compute_instance" "compute-csye6225" {
-  boot_disk {
-    device_name = "compute-csye6225"
-
-    initialize_params {
-      image = "projects/tf-project-csye-6225/global/images/custom-image-with-mysql"
-      size  = 100
-      type  = "pd-balanced"
-    }
-
-    mode = "READ_WRITE"
-  }
-
-  machine_type = "e2-standard-4"
-  name         = "compute-csye6225"
-  project      = var.project
-
-  network_interface {
-    access_config {
-      network_tier = "PREMIUM"
-    }
-    subnetwork = google_compute_subnetwork.subnet[0].self_link
-  }
-  service_account {
-    email  = "csye6225-service-for-packer@tf-project-csye-6225.iam.gserviceaccount.com"
-    scopes = ["https://www.googleapis.com/auth/cloud-platform"]
-  }
-
-  zone = "us-east1-b"
-  depends_on = [google_compute_subnetwork.subnet[0]]
-}
-
-resource "google_compute_firewall" "allow_http" {
-  name    = "allow-http"
-  network = google_compute_network.vpc.self_link
-  project = var.project
-
-  allow {
-    protocol = "tcp"
-    ports    = ["3000"]
-  }
-
-  source_ranges = ["0.0.0.0/0"] 
-  depends_on = [google_compute_network.vpc]
-}
-
-resource "google_compute_firewall" "deny_ssh" {
-  name    = "deny-ssh"
-  network = google_compute_network.vpc.self_link
-  project = var.project
-
-  deny {
-    protocol = "tcp"
-    ports    = ["22"] 
-  }
-
-  source_ranges = ["0.0.0.0/0"]
-  depends_on = [google_compute_network.vpc]
-}
-
-
 resource "google_compute_global_address" "default" {
   project      = var.project
   name         = "private-google-access-ip"
@@ -127,14 +65,111 @@ resource "google_sql_database_instance" "db_instance_2" {
 }
 
 resource "google_sql_database" "mysql_db_1" {
-  name     = "mysql_db_1"
+  name     = random_string.database_name.result
   instance = google_sql_database_instance.db_instance_2.name 
   depends_on = [google_sql_database_instance.db_instance_2]
 }
 
 resource "google_sql_user" "mysql_user_1" {
-  name     = "mysql_user_1"
+  name     = random_string.database_user.result
   instance = google_sql_database_instance.db_instance_2.name 
-  password = "1234@Data" 
+  password = random_string.database_pswd.result 
   depends_on = [google_sql_database_instance.db_instance_2]
+}
+
+resource "random_string" "database_name" {
+  length = 16
+  special = true
+  upper = true
+  lower = true
+  numeric = true
+}
+
+resource "random_string" "database_pswd" {
+  length = 16
+  special = true
+  upper = true
+  lower = true
+  numeric = true
+}
+
+resource "random_string" "database_user" {
+  length = 16
+  special = true
+  upper = true
+  lower = true
+  numeric = true
+}
+
+resource "google_compute_instance" "compute-csye6225" {
+  boot_disk {
+    device_name = "compute-csye6225"
+
+    initialize_params {
+      image = "projects/tf-project-csye-6225/global/images/custom-image-with-mysql"
+      size  = 100
+      type  = "pd-balanced"
+    }
+
+    mode = "READ_WRITE"
+  }
+
+  machine_type = "e2-standard-4"
+  name         = "compute-csye6225"
+  project      = var.project
+
+  network_interface {
+    access_config {
+      network_tier = "PREMIUM"
+    }
+    subnetwork = google_compute_subnetwork.subnet[0].self_link
+  }
+  metadata = {
+    startup-script = <<-EOT
+    #!/bin/bash
+    cat <<EOF > /opt/csye6225/webapp/
+    DATABASE=${random_string.database_name.result}
+    SQL_USER=${random_string.database_user.result}
+    SQL_PSWD=${random_string.database_pswd.result}
+    HOST=${google_sql_database_instance.db_instance_2.private_ip_address}
+    
+    EOF
+    chown csye6225:csye6225 /opt/csye6225/start_db.sh
+    EOT
+  }
+  service_account {
+    email  = "csye6225-service-for-packer@tf-project-csye-6225.iam.gserviceaccount.com"
+    scopes = ["https://www.googleapis.com/auth/cloud-platform"]
+  }
+
+  zone = "us-east1-b"
+  depends_on = [google_compute_subnetwork.subnet[0]]
+}
+
+resource "google_compute_firewall" "allow_http" {
+  name    = "allow-http"
+  network = google_compute_network.vpc.self_link
+  project = var.project
+
+  allow {
+    protocol = "tcp"
+    ports    = ["3000"]
+  }
+
+  source_ranges = ["0.0.0.0/0"] 
+  depends_on = [google_compute_network.vpc]
+}
+
+resource "google_compute_firewall" "deny_ssh" {
+  name    = "deny-ssh"
+  network = google_compute_network.vpc.self_link
+  project = var.project
+
+  deny {
+    protocol = "tcp"
+    ports    = ["22"] 
+  }
+
+  source_ranges = ["0.0.0.0/0"]
+  depends_on = [google_compute_network.vpc]
 }
