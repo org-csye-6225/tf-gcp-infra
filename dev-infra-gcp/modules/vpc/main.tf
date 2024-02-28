@@ -100,6 +100,22 @@ resource "random_string" "database_user" {
   lower = true
   numeric = true
 }
+resource "random_string" "auth_user" {
+  length = 16
+  special = true
+  upper = true
+  lower = true
+  numeric = true
+}
+
+resource "random_string" "auth_pswd" {
+  length = 16
+  special = true
+  upper = true
+  lower = true
+  numeric = true
+}
+
 
 resource "google_compute_instance" "compute-csye6225" {
   boot_disk {
@@ -127,14 +143,16 @@ resource "google_compute_instance" "compute-csye6225" {
   metadata = {
     startup-script = <<-EOT
     #!/bin/bash
-    cat <<EOF > /opt/csye6225/webapp/
+    cat <<EOF > /opt/csye6225/webapp/.env
     DATABASE=${random_string.database_name.result}
     SQL_USER=${random_string.database_user.result}
     SQL_PSWD=${random_string.database_pswd.result}
+    AUTH_USER=${random_string.auth_user.result}
+    AUTH_PWSD=${random_string.auth_pswd.result}
     HOST=${google_sql_database_instance.db_instance_2.private_ip_address}
-    
+
     EOF
-    chown csye6225:csye6225 /opt/csye6225/start_db.sh
+    chown csye6225:csye6225 /opt/csye6225/.env
     EOT
   }
   service_account {
