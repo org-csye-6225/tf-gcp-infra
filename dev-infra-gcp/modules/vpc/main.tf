@@ -46,9 +46,9 @@ resource "google_service_networking_connection" "default" {
   reserved_peering_ranges = [google_compute_global_address.default.name]
   depends_on = [google_compute_network.vpc]
 }
- 
-resource "google_sql_database_instance" "db_instance_2" {
-  name             = "db-instance-2"
+
+ resource "google_sql_database_instance" "db_instance_10" {
+  name             = "db-instance-10"
   database_version = "MYSQL_8_0"
   region           = var.region
 
@@ -65,55 +65,32 @@ resource "google_sql_database_instance" "db_instance_2" {
 }
 
 resource "google_sql_database" "mysql_db_1" {
-  name     = random_string.database_name.result
-  instance = google_sql_database_instance.db_instance_2.name 
-  depends_on = [google_sql_database_instance.db_instance_2]
+  name     = "webapp"
+  instance = google_sql_database_instance.db_instance_10.name 
+  depends_on = [google_sql_database_instance.db_instance_10]
 }
 
 resource "google_sql_user" "mysql_user_1" {
-  name     = random_string.database_user.result
-  instance = google_sql_database_instance.db_instance_2.name 
+  name     = "webapp"
+  instance = google_sql_database_instance.db_instance_10.name 
   password = random_string.database_pswd.result 
-  depends_on = [google_sql_database_instance.db_instance_2]
-}
-
-resource "random_string" "database_name" {
-  length = 16
-  special = true
-  upper = true
-  lower = true
-  numeric = true
+  depends_on = [google_sql_database_instance.db_instance_10]
 }
 
 resource "random_string" "database_pswd" {
   length = 16
-  special = true
   upper = true
   lower = true
   numeric = true
-}
-
-resource "random_string" "database_user" {
-  length = 16
-  special = true
-  upper = true
-  lower = true
-  numeric = true
-}
-resource "random_string" "auth_user" {
-  length = 16
-  special = true
-  upper = true
-  lower = true
-  numeric = true
+  special = false
 }
 
 resource "random_string" "auth_pswd" {
   length = 16
-  special = true
   upper = true
   lower = true
   numeric = true
+  special = false
 }
 
 
@@ -143,14 +120,13 @@ resource "google_compute_instance" "compute-csye6225" {
   metadata = {
     startup-script = <<-EOT
     #!/bin/bash
-    cat <<EOF > /opt/csye6225/webapp/.env
-    DATABASE=${random_string.database_name.result}
-    SQL_USER=${random_string.database_user.result}
+    cat <<EOF >> /opt/csye6225/webapp/.env
+    DATABASE=webapp
+    SQL_USER=webapp
     SQL_PSWD=${random_string.database_pswd.result}
-    AUTH_USER=${random_string.auth_user.result}
+    AUTH_USER=test@test.com
     AUTH_PWSD=${random_string.auth_pswd.result}
-    HOST=${google_sql_database_instance.db_instance_2.private_ip_address}
-
+    HOST=${google_sql_database_instance.db_instance_10.private_ip_address}
     EOF
     chown csye6225:csye6225 /opt/csye6225/.env
     EOT
