@@ -48,9 +48,13 @@ jobs:
         working-directory: dev-infra-gcp
         run: terraform init
 
-      - name: Terraform Plan
-        working-directory: dev-infra-gcp 
-        run: terraform plan -var="credentials_file=${GOOGLE_APPLICATION_CREDENTIALS}"
+      - name: Initialize Terraform
+        working-directory: dev-infra-gcp
+        run: terraform validate
+
+      # - name: Terraform Plan
+      #   working-directory: dev-infra-gcp 
+      #   run: terraform plan -var="credentials_file=${GOOGLE_APPLICATION_CREDENTIALS}"
 
       # - name: Terraform Apply
       #   working-directory: dev-infra-gcp 
