@@ -23,25 +23,25 @@ jobs:
           terraform_version: 1.7.3
 
        
-      - name: Create tfvars file
-        run: |
-          echo "project_id =\"${{ secrets.PROJECT_ID }}\"" > dev-infra-gcp/terraform.tfvars
-          echo "region_id =\"${{ secrets.REGION }}\"" >> dev-infra-gcp/terraform.tfvars
-          echo "vpc_name =\"${{ secrets.VPC_NAME }}\"" >> dev-infra-gcp/terraform.tfvars
-          echo "vpc_routing_mode = \"REGIONAL\"" >> dev-infra-gcp/terraform.tfvars
-          echo "private_subnet =\"${{ secrets.PRIVATE_SUBNET }}\"" >> dev-infra-gcp/terraform.tfvars
-          echo "public_subnet =\"${{ secrets.PUBLIC_SUBNET }}\"" >> dev-infra-gcp/terraform.tfvars
-          echo "" >> dev-infra-gcp/terraform.tfvars
-          echo "vpcs = {" >> dev-infra-gcp/terraform.tfvars
-          echo "  vpc1 = {" >> dev-infra-gcp/terraform.tfvars
-          echo "    name = \"${{ secrets.VPC_NAME }}\"" >> dev-infra-gcp/terraform.tfvars
-          echo "    routing_mode = \"REGIONAL\"" >> dev-infra-gcp/terraform.tfvars
-          echo "    subnets = [" >> dev-infra-gcp/terraform.tfvars
-          echo "      { name = \"${{ secrets.PUBLIC_SUBNET }}\", cidr = \"${{ secrets.PUBLIC_CIDR }}\" }," >> dev-infra-gcp/terraform.tfvars
-          echo "      { name = \"${{ secrets.PRIVATE_SUBNET }}\", cidr = \"${{ secrets.PRIVATE_CIDR }}\" }" >> dev-infra-gcp/terraform.tfvars
-          echo "    ]" >> dev-infra-gcp/terraform.tfvars
-          echo "  }" >> dev-infra-gcp/terraform.tfvars
-          echo "}" >> dev-infra-gcp/terraform.tfvars
+      # - name: Create tfvars file
+      #   run: |
+      #     echo "project_id =\"${{ secrets.PROJECT_ID }}\"" > dev-infra-gcp/terraform.tfvars
+      #     echo "region_id =\"${{ secrets.REGION }}\"" >> dev-infra-gcp/terraform.tfvars
+      #     echo "vpc_name =\"${{ secrets.VPC_NAME }}\"" >> dev-infra-gcp/terraform.tfvars
+      #     echo "vpc_routing_mode = \"REGIONAL\"" >> dev-infra-gcp/terraform.tfvars
+      #     echo "private_subnet =\"${{ secrets.PRIVATE_SUBNET }}\"" >> dev-infra-gcp/terraform.tfvars
+      #     echo "public_subnet =\"${{ secrets.PUBLIC_SUBNET }}\"" >> dev-infra-gcp/terraform.tfvars
+      #     echo "" >> dev-infra-gcp/terraform.tfvars
+      #     echo "vpcs = {" >> dev-infra-gcp/terraform.tfvars
+      #     echo "  vpc1 = {" >> dev-infra-gcp/terraform.tfvars
+      #     echo "    name = \"${{ secrets.VPC_NAME }}\"" >> dev-infra-gcp/terraform.tfvars
+      #     echo "    routing_mode = \"REGIONAL\"" >> dev-infra-gcp/terraform.tfvars
+      #     echo "    subnets = [" >> dev-infra-gcp/terraform.tfvars
+      #     echo "      { name = \"${{ secrets.PUBLIC_SUBNET }}\", cidr = \"${{ secrets.PUBLIC_CIDR }}\" }," >> dev-infra-gcp/terraform.tfvars
+      #     echo "      { name = \"${{ secrets.PRIVATE_SUBNET }}\", cidr = \"${{ secrets.PRIVATE_CIDR }}\" }" >> dev-infra-gcp/terraform.tfvars
+      #     echo "    ]" >> dev-infra-gcp/terraform.tfvars
+      #     echo "  }" >> dev-infra-gcp/terraform.tfvars
+      #     echo "}" >> dev-infra-gcp/terraform.tfvars
 
 
       - name: Initialize Terraform
@@ -52,6 +52,6 @@ jobs:
         working-directory: dev-infra-gcp 
         run: terraform plan -var="credentials_file=${GOOGLE_APPLICATION_CREDENTIALS}"
 
-      - name: Terraform Apply
-        working-directory: dev-infra-gcp 
-        run: terraform apply --auto-approve -var="credentials_file=${GOOGLE_APPLICATION_CREDENTIALS}"
+      # - name: Terraform Apply
+      #   working-directory: dev-infra-gcp 
+      #   run: terraform apply --auto-approve -var="credentials_file=${GOOGLE_APPLICATION_CREDENTIALS}"
