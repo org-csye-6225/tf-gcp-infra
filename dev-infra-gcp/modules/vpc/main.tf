@@ -16,7 +16,6 @@ resource "google_compute_subnetwork" "subnet" {
   depends_on    = [google_compute_network.vpc]
   private_ip_google_access = true
   # private_ip_google_access = (count.index == 1) ? 1 : 0
-
 }
 
 resource "google_compute_route" "default_route" {
@@ -53,17 +52,22 @@ resource "google_service_networking_connection" "default" {
   region           = var.region
 
   settings {
-    tier = "db-n1-standard-1"
-
-    ip_configuration {
-      ipv4_enabled = false 
+    tier = var.tier
+    disk_type = var.disk_type
+    disk_size = var.disk_size
+    backup_configuration {
+      enabled = true
+      binary_log_enabled = true
+    }
+    availability_type = var.availability_type
+     ip_configuration {
+      ipv4_enabled = var.ipv4_enabled 
       private_network = google_compute_network.vpc.self_link
     }
   }
-  deletion_protection = false
+  deletion_protection = var.deletion_protection
   depends_on = [google_service_networking_connection.default]
 }
-
 resource "google_sql_database" "mysql_db_1" {
   name     = "webapp"
   instance = google_sql_database_instance.db_instance_10.name 
@@ -93,13 +97,12 @@ resource "random_string" "auth_pswd" {
   special = false
 }
 
-
 resource "google_compute_instance" "compute-csye6225" {
   boot_disk {
     device_name = "compute-csye6225"
 
     initialize_params {
-      image = "projects/tf-project-csye-6225/global/images/custom-image-with-mysql"
+      image = "projects/tf-project-csye-6225/global/images/custom-image-with-mysql-1710270387"
       size  = 100
       type  = "pd-balanced"
     }
@@ -111,7 +114,7 @@ resource "google_compute_instance" "compute-csye6225" {
   name         = "compute-csye6225"
   project      = var.project
 
-  network_interface {
+   network_interface {
     access_config {
       network_tier = "PREMIUM"
     }
@@ -125,12 +128,12 @@ resource "google_compute_instance" "compute-csye6225" {
     SQL_USER=webapp
     SQL_PSWD=${random_string.database_pswd.result}
     AUTH_USER=test@test.com
-    AUTH_PWSD=${random_string.auth_pswd.result}
+    AUTH_PSWD=${random_string.auth_pswd.result}
     HOST=${google_sql_database_instance.db_instance_10.private_ip_address}
     EOF
-    chown csye6225:csye6225 /opt/csye6225/.env
+    chown csye6225:csye6225 /opt/csye6225/webapp/.env
     EOT
-  }
+  } 
   service_account {
     email  = "csye6225-service-for-packer@tf-project-csye-6225.iam.gserviceaccount.com"
     scopes = ["https://www.googleapis.com/auth/cloud-platform"]
