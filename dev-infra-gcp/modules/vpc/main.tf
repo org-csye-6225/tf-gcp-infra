@@ -1,3 +1,27 @@
+resource "google_service_account" "my_service_account" {
+  account_id   = "new-service-account"
+  display_name = "new-service-account"
+  project = var.project
+}
+
+resource "google_project_iam_binding" "logging_admin_binding" {
+  project = var.project
+  role    = "roles/logging.admin"
+  
+  members = [
+    "serviceAccount:${google_service_account.my_service_account.email}"
+  ]
+}
+
+resource "google_project_iam_binding" "monitoring_metric_writer_binding" {
+  project = var.project
+  role    = "roles/monitoring.metricWriter"
+  
+  members = [
+    "serviceAccount:${google_service_account.my_service_account.email}"
+  ]
+}
+
 resource "google_compute_network" "vpc" {
   name                    = var.name
   project                 = var.project
@@ -102,7 +126,7 @@ resource "google_compute_instance" "compute-csye6225" {
     device_name = "compute-csye6225"
 
     initialize_params {
-      image = "projects/tf-project-csye-6225/global/images/custom-image-with-mysql-1710270387"
+      image = "projects/tf-project-csye-6225/global/images/custom-image-with-mysql-1710656283"
       size  = 100
       type  = "pd-balanced"
     }
@@ -120,8 +144,8 @@ resource "google_compute_instance" "compute-csye6225" {
     }
     subnetwork = google_compute_subnetwork.subnet[0].self_link
   }
-  metadata = {
-    startup-script = <<-EOT
+ metadata = {
+  startup-script = <<-EOT
     #!/bin/bash
     cat <<EOF >> /opt/csye6225/webapp/.env
     DATABASE=webapp
@@ -132,15 +156,45 @@ resource "google_compute_instance" "compute-csye6225" {
     HOST=${google_sql_database_instance.db_instance_10.private_ip_address}
     EOF
     chown csye6225:csye6225 /opt/csye6225/webapp/.env
-    EOT
-  } 
+
+    # Create or update config.yaml
+    cat <<EOF > /etc/google-cloud-ops-agent/config.yaml
+    logging:
+      receivers:
+        my-app-receiver:
+          type: files
+          include_paths:
+            - /var/log/webapp/combined.log
+          record_log_file_path: true
+      processors:
+        my-app-processor:
+          type: parse_json
+          time_key: time
+          time_format: "%Y-%m-%dT%H:%M:%S.%L%Z"
+      service:
+        pipelines:
+          default_pipeline:
+            receivers: [my-app-receiver]
+            processors: [my-app-processor]
+    EOF
+
+    # Restart google-cloud-ops-agent service
+    sudo systemctl restart google-cloud-ops-agent
+  EOT
+}
+
   service_account {
-    email  = "csye6225-service-for-packer@tf-project-csye-6225.iam.gserviceaccount.com"
-    scopes = ["https://www.googleapis.com/auth/cloud-platform"]
+       email  = google_service_account.my_service_account.email
+       scopes = ["https://www.googleapis.com/auth/cloud-platform"]
   }
 
   zone = "us-east1-b"
-  depends_on = [google_compute_subnetwork.subnet[0]]
+  depends_on = [
+    google_sql_database_instance.db_instance_10,
+    google_service_account.my_service_account,
+    google_project_iam_binding.logging_admin_binding,
+    google_project_iam_binding.monitoring_metric_writer_binding
+  ]
 }
 
 resource "google_compute_firewall" "allow_http" {
