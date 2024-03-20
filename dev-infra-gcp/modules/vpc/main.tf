@@ -126,7 +126,7 @@ resource "google_compute_instance" "compute-csye6225" {
     device_name = "compute-csye6225"
 
     initialize_params {
-      image = "projects/tf-project-csye-6225/global/images/custom-image-with-mysql-1710656283"
+      image = "projects/tf-project-csye-6225/global/images/custom-image-with-mysql-1710928301"
       size  = 100
       type  = "pd-balanced"
     }
@@ -170,13 +170,19 @@ resource "google_compute_instance" "compute-csye6225" {
         my-app-processor:
           type: parse_json
           time_key: time
-          time_format: "%Y-%m-%dT%H:%M:%S.%L%Z"
+          time_format: "%Y-%m-%d %H:%M:%S,%f"
+        move_severity:
+          type: modify_fields
+          fields:
+            severity:
+              move_from: jsonPayload.severity
       service:
         pipelines:
           default_pipeline:
             receivers: [my-app-receiver]
-            processors: [my-app-processor]
+            processors: [my-app-processor, move_severity]
     EOF
+    sudo systemctl restart google-cloud-ops-agent
 
     # Restart google-cloud-ops-agent service
     sudo systemctl restart google-cloud-ops-agent
@@ -223,4 +229,16 @@ resource "google_compute_firewall" "deny_ssh" {
 
   source_ranges = ["0.0.0.0/0"]
   depends_on = [google_compute_network.vpc]
+}
+
+resource "google_dns_record_set" "dns_record" {
+  name         = "abhinavpandey.tech."
+  type         = "A"
+  ttl          = 300
+  managed_zone = "abhinav-csye6225"
+
+  rrdatas = [
+    google_compute_instance.compute-csye6225.network_interface[0].access_config[0].nat_ip
+  ]
+  depends_on = [google_compute_instance.compute-csye6225]
 }
