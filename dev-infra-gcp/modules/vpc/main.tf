@@ -126,7 +126,7 @@ resource "google_compute_instance" "compute-csye6225" {
     device_name = "compute-csye6225"
 
     initialize_params {
-      image = "projects/tf-project-csye-6225/global/images/custom-image-with-mysql-1710980555"
+      image = "projects/tf-project-csye-6225/global/images/custom-image-with-mysql-1710995034"
       size  = 100
       type  = "pd-balanced"
     }
@@ -159,34 +159,34 @@ resource "google_compute_instance" "compute-csye6225" {
 
     # Create or update config.yaml
     cat <<EOF > /etc/google-cloud-ops-agent/config.yaml
-    logging:
-      receivers:
-        my-app-receiver:
-          type: files
-          include_paths:
-            - /var/log/webapp/combined.log
-          record_log_file_path: true
-      processors:
-        my-app-processor:
-          type: parse_json
-          time_key: time
-          time_format: "%Y-%m-%d %H:%M:%S,%f"
-        move_severity:
-        type: modify_fields
-        fields:
-          severity:
-            move_from: jsonPayload.level
-              map_values:
-                INFO: "info"
-                ERROR: "error"
-                WARNING: "warn"
-                DEBUG: "debug"
-      service:
-        pipelines:
-          default_pipeline:
-            receivers: [my-app-receiver]
-            processors: [my-app-processor, move_severity]
-    EOF
+logging:
+ receivers:
+   my-app-receiver:
+     type: files
+     include_paths:
+       - /var/log/webapp/combined.log
+     record_log_file_path: true
+ processors:
+   my-app-processor:
+     type: parse_json
+     time_key: time
+     time_format: "%Y-%m-%dT%H:%M:%S.%fZ"
+   move_severity:
+     type: modify_fields
+     fields:
+       severity:
+         move_from: jsonPayload.level
+         map_values:
+           INFO: "info"
+           ERROR: "error"
+           WARNING: "warn"
+           DEBUG: "debug"
+ service:
+   pipelines:
+     default_pipeline:
+       receivers: [my-app-receiver]
+       processors: [my-app-processor, move_severity]
+EOF
 
     # Restart google-cloud-ops-agent service
     sudo systemctl restart google-cloud-ops-agent
