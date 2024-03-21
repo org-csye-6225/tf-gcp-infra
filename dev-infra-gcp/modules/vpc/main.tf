@@ -126,7 +126,7 @@ resource "google_compute_instance" "compute-csye6225" {
     device_name = "compute-csye6225"
 
     initialize_params {
-      image = "projects/tf-project-csye-6225/global/images/custom-image-with-mysql-1710928301"
+      image = "projects/tf-project-csye-6225/global/images/custom-image-with-mysql-1710980555"
       size  = 100
       type  = "pd-balanced"
     }
@@ -172,17 +172,21 @@ resource "google_compute_instance" "compute-csye6225" {
           time_key: time
           time_format: "%Y-%m-%d %H:%M:%S,%f"
         move_severity:
-          type: modify_fields
-          fields:
-            severity:
-              move_from: jsonPayload.severity
+        type: modify_fields
+        fields:
+          severity:
+            move_from: jsonPayload.level
+              map_values:
+                INFO: "info"
+                ERROR: "error"
+                WARNING: "warn"
+                DEBUG: "debug"
       service:
         pipelines:
           default_pipeline:
             receivers: [my-app-receiver]
             processors: [my-app-processor, move_severity]
     EOF
-    sudo systemctl restart google-cloud-ops-agent
 
     # Restart google-cloud-ops-agent service
     sudo systemctl restart google-cloud-ops-agent
