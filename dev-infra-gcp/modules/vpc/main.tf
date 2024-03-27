@@ -126,7 +126,7 @@ resource "google_compute_instance" "compute-csye6225" {
     device_name = "compute-csye6225"
 
     initialize_params {
-      image = "projects/tf-project-csye-6225/global/images/custom-image-with-mysql-1710995034"
+      image = "projects/tf-csye-6225-project/global/images/custom-image-with-pubsub-1711526550"
       size  = 100
       type  = "pd-balanced"
     }
@@ -243,6 +243,79 @@ resource "google_dns_record_set" "dns_record" {
 
   rrdatas = [
     google_compute_instance.compute-csye6225.network_interface[0].access_config[0].nat_ip
+  ]
+  depends_on = [google_compute_instance.compute-csye6225]
+}
+resource "google_dns_record_set" "mx_record" {
+  name         = "abhinavpandey.tech."
+  type         = "MX"
+  ttl          = 120
+  managed_zone = "abhinav-csye6225"
+
+  rrdatas = [
+    "10 mxa.mailgun.org.",
+    "10 mxb.mailgun.org."
+  ]
+  depends_on = [google_compute_instance.compute-csye6225]
+}
+resource "google_dns_record_set" "soa_record" {
+  name         = "abhinavpandey.tech."
+  type         = "SOA"
+  ttl          = 360
+  managed_zone = "abhinav-csye6225"
+
+  rrdatas = [
+    "ns-cloud-a1.googledomains.com. cloud-dns-hostmaster.google.com. 1 21600 3600 259200 300"
+  ]
+  depends_on = [google_compute_instance.compute-csye6225]
+}
+
+resource "google_dns_record_set" "txt_record" {
+  name         = "abhinavpandey.tech."
+  type         = "TXT"
+  ttl          = 120
+  managed_zone = "abhinav-csye6225"
+
+  rrdatas = [
+    "\"v=spf1 include:mailgun.org ~all\""
+  ]
+  depends_on = [google_compute_instance.compute-csye6225]
+}
+
+resource "google_dns_record_set" "ns_record" {
+  name         = "abhinavpandey.tech."
+  type         = "NS"
+  ttl          = 360
+  managed_zone = "abhinav-csye6225"
+
+  rrdatas = [
+    "ns-cloud-a1.googledomains.com.",
+    "ns-cloud-a2.googledomains.com.",
+    "ns-cloud-a3.googledomains.com.",
+    "ns-cloud-a4.googledomains.com."
+  ]
+  depends_on = [google_compute_instance.compute-csye6225]
+}
+
+resource "google_dns_record_set" "cname_record" {
+  name         = "email.abhinavpandey.tech."
+  type         = "CNAME"
+  ttl          = 120
+  managed_zone = "abhinav-csye6225"
+
+  rrdatas = [
+    "mailgun.org."
+  ]
+  depends_on = [google_compute_instance.compute-csye6225]
+}
+resource "google_dns_record_set" "txt_domainkey_record" {
+  name         = "pic._domainkey.abhinavpandey.tech."
+  type         = "TXT"
+  ttl          = 120
+  managed_zone = "abhinav-csye6225"
+
+  rrdatas = [
+    "\"k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDOgEQRmPJAqWyRJQaZRw9hDk/A2ZFPeEf+amZeYpB4xuLOSNRklYQjXlXB85yUxmkYawlHGNJQGC7ZvKyHbSYFouAiiI8lz4rNC/panNkU+PghUi/c5h5uAFL7ke4e9cSMHK0tJrwzxVPpvaM62UVE+FCPOMZ79UxX3BNKHtvKkwIDAQAB\""
   ]
   depends_on = [google_compute_instance.compute-csye6225]
 }
