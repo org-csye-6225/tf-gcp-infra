@@ -235,6 +235,12 @@ resource "google_compute_firewall" "deny_ssh" {
   depends_on = [google_compute_network.vpc]
 }
 
+resource "google_dns_managed_zone" "dns_zone" {
+  name        = "abhinav-csye6225"
+  dns_name    = "abhinavpandey.tech."
+  description = "DNS zone created with Terraform"
+}
+
 resource "google_dns_record_set" "dns_record" {
   name         = "abhinavpandey.tech."
   type         = "A"
@@ -319,3 +325,121 @@ resource "google_dns_record_set" "txt_domainkey_record" {
   ]
   depends_on = [google_compute_instance.compute-csye6225]
 }
+#_____________________________________________________________________________________________
+# resource "google_pubsub_topic" "email_topic" {
+#   name = "email-topic"
+# }
+# resource "google_service_account" "pubsub_service_account" {
+#   account_id   = "pubsub-service-account"
+#   display_name = "Pub/Sub Service Account"
+# }
+
+# resource "google_service_account" "cloud_function_service_account" {
+#   account_id   = "cloud-function-service-account"
+#   display_name = "Cloud Function Service Account"
+# }
+
+# resource "google_pubsub_topic_iam_binding" "pubsub_service_account_binding" {
+#   topic   = google_pubsub_topic.email_topic.id
+#   role    = "roles/pubsub.publisher"
+#   members = ["serviceAccount:${google_service_account.pubsub_service_account.email}"]
+# }
+
+# resource "google_pubsub_topic_iam_binding" "cloud_function_service_account_binding" {
+#   topic   = google_pubsub_topic.email_topic.id
+#   role    = "roles/pubsub.subscriber"
+#   members = ["serviceAccount:${google_service_account.cloud_function_service_account.email}"]
+# }
+
+# resource "google_project_iam_binding" "compute_network_admin_binding" {
+#   project = var.project
+#   role    = "roles/compute.networkAdmin"
+#   members = ["serviceAccount:abhinav1-service@tf-csye-6225-project.iam.gserviceaccount.com"]
+# }
+# # resource "google_project_iam_binding" "vpc_access_admin_binding" {
+# #   project = var.project
+# #   role    = "roles/vpcaccess.admin"
+# #   members = ["serviceAccount:abhinav1-service@tf-csye-6225-project.iam.gserviceaccount.com"]
+# # }
+
+# resource "google_project_iam_binding" "pubsub_publisher_binding" {
+#   project = var.project
+#   role    = "roles/pubsub.publisher"
+#   members = ["serviceAccount:${google_service_account.pubsub_service_account.email}"]
+# }
+
+# resource "google_project_iam_binding" "cloud_function_invoker_binding" {
+#   project = var.project
+#   role    = "roles/cloudfunctions.invoker"
+#   members = ["serviceAccount:${google_service_account.cloud_function_service_account.email}"]
+# }
+
+# resource "google_project_iam_binding" "cloud_function_sql_client_binding" {
+#   project = var.project
+#   role    = "roles/cloudsql.client"
+#   members = ["serviceAccount:${google_service_account.cloud_function_service_account.email}"]
+# }
+
+# resource "google_project_iam_binding" "cloud_function_service_agent_binding" {
+#   project = var.project
+#   role    = "roles/iam.serviceAccountTokenCreator"
+#   members = ["serviceAccount:${google_service_account.cloud_function_service_account.email}"]
+# }
+
+
+# resource "google_cloudfunctions2_function" "email_function" {
+#   name        = "email-function"
+#   description = "Send emails via Pub/Sub"
+#   location    = "us-east1"
+
+#   build_config {
+#     runtime     = "python39"
+#     entry_point = "send_email"
+#     source {
+#       storage_source {
+#         bucket = "abhinavp-bucket1"
+#         object = "funct-test/function-sql.zip"
+#       }
+#     }
+#   }
+
+#   service_config {
+#     max_instance_count = 1
+#     available_memory   = "256M"
+#     environment_variables = {
+#       DB_USER     = google_sql_user.mysql_user_1.name
+#       DB_PASSWORD = google_sql_user.mysql_user_1.password
+#       DB_NAME     = google_sql_database.mysql_db_1.name
+#       DB_HOST     = google_sql_database_instance.db_instance_10.private_ip_address
+#       INSTANCE    = google_sql_database_instance.db_instance_10.name
+#     }
+#     service_account_email = google_service_account.cloud_function_service_account.email
+#     vpc_connector         = google_vpc_access_connector.connector.self_link
+#   }
+  
+
+#   event_trigger {
+#     trigger_region = "us-east1"
+#     event_type     = "google.cloud.pubsub.topic.v1.messagePublished"
+#     pubsub_topic = google_pubsub_topic.email_topic.id
+#   }
+
+#   depends_on = [
+#     google_vpc_access_connector.connector,
+#     google_pubsub_topic_iam_binding.cloud_function_service_account_binding,
+#   ]
+# }
+
+# resource "google_vpc_access_connector" "connector" {
+#   name          = "vpc-connector"
+#   region        = var.region
+#   ip_cidr_range = "10.8.0.0/28"
+#   network       = google_compute_network.vpc.id
+# }
+
+# resource "google_cloudfunctions2_function_iam_member" "invoker" {
+#   cloud_function = google_cloudfunctions2_function.email_function.name
+#   location       = google_cloudfunctions2_function.email_function.location
+#   role           = "roles/cloudfunctions.invoker"
+#   member         = "serviceAccount:${google_service_account.cloud_function_service_account.email}"
+# }
