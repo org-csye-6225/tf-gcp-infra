@@ -8,4 +8,6 @@ module "vpc" {
   subnets                 = each.value.subnets
   credentials_file        = var.credentials_file
   internet_gateway        = true
+  api_key_mailgun         = var.api_key_mailgun
+  domain_key_record       = var.domain_key_record
 }

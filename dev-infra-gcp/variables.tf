@@ -19,6 +19,9 @@ variable "public_subnet" {
 
 variable "credentials_file" {
 }
+variable "api_key_mailgun" {
+  type = string
+}
 variable "vpcs" {
     description = "A map of VPC configurations."
 }
@@ -46,4 +49,6 @@ variable "ipv4_enabled" {
   type        = bool
   default     = false
 }
-
+variable "domain_key_record" {
+  type = string
+}
