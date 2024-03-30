@@ -47,9 +47,15 @@ variable "ipv4_enabled" {
   default     = false
 }
 
+variable "api_key_mailgun" {
+  type = string
+}
+
 variable "tier" {
   type        = string
   default     = "db-n1-standard-1"
 }
-
+variable "domain_key_record" {
+  type = string
+}
 

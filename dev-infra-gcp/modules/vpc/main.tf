@@ -244,7 +244,7 @@ resource "google_dns_managed_zone" "dns_zone" {
 resource "google_dns_record_set" "dns_record" {
   name         = "abhinavpandey.tech."
   type         = "A"
-  ttl          = 300
+  ttl          = 360
   managed_zone = "abhinav-csye6225"
 
   rrdatas = [
@@ -255,7 +255,7 @@ resource "google_dns_record_set" "dns_record" {
 resource "google_dns_record_set" "mx_record" {
   name         = "abhinavpandey.tech."
   type         = "MX"
-  ttl          = 120
+  ttl          = 360
   managed_zone = "abhinav-csye6225"
 
   rrdatas = [
@@ -279,7 +279,7 @@ resource "google_dns_record_set" "soa_record" {
 resource "google_dns_record_set" "txt_record" {
   name         = "abhinavpandey.tech."
   type         = "TXT"
-  ttl          = 120
+  ttl          = 360
   managed_zone = "abhinav-csye6225"
 
   rrdatas = [
@@ -306,7 +306,7 @@ resource "google_dns_record_set" "ns_record" {
 resource "google_dns_record_set" "cname_record" {
   name         = "email.abhinavpandey.tech."
   type         = "CNAME"
-  ttl          = 120
+  ttl          = 360
   managed_zone = "abhinav-csye6225"
 
   rrdatas = [
@@ -317,11 +317,11 @@ resource "google_dns_record_set" "cname_record" {
 resource "google_dns_record_set" "txt_domainkey_record" {
   name         = "pic._domainkey.abhinavpandey.tech."
   type         = "TXT"
-  ttl          = 120
+  ttl          = 360
   managed_zone = "abhinav-csye6225"
 
   rrdatas = [
-    "\"k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDOgEQRmPJAqWyRJQaZRw9hDk/A2ZFPeEf+amZeYpB4xuLOSNRklYQjXlXB85yUxmkYawlHGNJQGC7ZvKyHbSYFouAiiI8lz4rNC/panNkU+PghUi/c5h5uAFL7ke4e9cSMHK0tJrwzxVPpvaM62UVE+FCPOMZ79UxX3BNKHtvKkwIDAQAB\""
+    var.domain_key_record
   ]
   depends_on = [google_compute_instance.compute-csye6225]
 }
@@ -414,6 +414,8 @@ resource "google_cloudfunctions2_function" "email_function" {
       DB_NAME     = google_sql_database.mysql_db_1.name
       DB_HOST     = google_sql_database_instance.db_instance_10.private_ip_address
       INSTANCE    = google_sql_database_instance.db_instance_10.name
+      API_KEY     = var.api_key_mailgun
+      IP          = google_compute_instance.compute-csye6225.network_interface[0].access_config[0].nat_ip
     }
     service_account_email = google_service_account.cloud_function_SA.email
     vpc_connector         = google_vpc_access_connector.connector.self_link
