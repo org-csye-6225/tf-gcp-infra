@@ -235,11 +235,6 @@ resource "google_compute_firewall" "deny_ssh" {
   depends_on = [google_compute_network.vpc]
 }
 
-resource "google_dns_managed_zone" "dns_zone" {
-  name        = "abhinav-csye6225"
-  dns_name    = "abhinavpandey.tech."
-  description = "DNS zone created with Terraform"
-}
 
 resource "google_dns_record_set" "dns_record" {
   name         = "abhinavpandey.tech."
@@ -264,17 +259,6 @@ resource "google_dns_record_set" "mx_record" {
   ]
   depends_on = [google_compute_instance.compute-csye6225]
 }
-resource "google_dns_record_set" "soa_record" {
-  name         = "abhinavpandey.tech."
-  type         = "SOA"
-  ttl          = 360
-  managed_zone = "abhinav-csye6225"
-
-  rrdatas = [
-    "ns-cloud-a1.googledomains.com. cloud-dns-hostmaster.google.com. 1 21600 3600 259200 300"
-  ]
-  depends_on = [google_compute_instance.compute-csye6225]
-}
 
 resource "google_dns_record_set" "txt_record" {
   name         = "abhinavpandey.tech."
@@ -284,21 +268,6 @@ resource "google_dns_record_set" "txt_record" {
 
   rrdatas = [
     "\"v=spf1 include:mailgun.org ~all\""
-  ]
-  depends_on = [google_compute_instance.compute-csye6225]
-}
-
-resource "google_dns_record_set" "ns_record" {
-  name         = "abhinavpandey.tech."
-  type         = "NS"
-  ttl          = 360
-  managed_zone = "abhinav-csye6225"
-
-  rrdatas = [
-    "ns-cloud-a1.googledomains.com.",
-    "ns-cloud-a2.googledomains.com.",
-    "ns-cloud-a3.googledomains.com.",
-    "ns-cloud-a4.googledomains.com."
   ]
   depends_on = [google_compute_instance.compute-csye6225]
 }
