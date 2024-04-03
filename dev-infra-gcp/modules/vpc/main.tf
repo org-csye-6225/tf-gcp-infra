@@ -368,7 +368,6 @@ resource "google_cloudfunctions2_function" "email_function" {
       DB_HOST     = google_sql_database_instance.db_instance_10.private_ip_address
       INSTANCE    = google_sql_database_instance.db_instance_10.name
       API_KEY     = var.api_key_mailgun
-      IP          = google_compute_region_instance_template.compute-csye6225.network_interface[0].access_config[0].nat_ip
     }
     service_account_email = google_service_account.cloud_function_SA.email
     vpc_connector         = google_vpc_access_connector.connector.self_link
