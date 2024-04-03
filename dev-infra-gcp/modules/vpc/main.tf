@@ -125,7 +125,7 @@ resource "random_string" "auth_pswd" {
 #     device_name = "compute-csye6225"
 
 #     initialize_params {
-#       image = "projects/tf-csye-6225-project/global/images/custom-image-with-pubsub-1711567402"
+#       image = "projects/tf-csye-6225-project/global/images/custom-image-with-pubsub-1712120987"
 #       size  = 100
 #       type  = "pd-balanced"
 #     }
@@ -205,31 +205,17 @@ resource "random_string" "auth_pswd" {
 #     google_project_iam_binding.monitoring_metric_writer_binding
 #   ]
 # }
-resource "google_compute_firewall" "allow_http" {
-  name    = "allow-http"
-  network = google_compute_network.vpc.self_link
-  project = var.project
-
-  allow {
-    protocol = "tcp"
-    ports    = ["3000"]
-  }
-
-  source_ranges = ["0.0.0.0/0"] 
-  depends_on = [google_compute_network.vpc]
-}
-
-# resource "google_compute_firewall" "deny_ssh" {
-#   name    = "deny-ssh"
+# resource "google_compute_firewall" "allow_http" {
+#   name    = "allow-http"
 #   network = google_compute_network.vpc.self_link
 #   project = var.project
 
-#   deny {
+#   allow {
 #     protocol = "tcp"
-#     ports    = ["22"] 
+#     ports    = ["3000", "22"]
 #   }
 
-#   source_ranges = ["0.0.0.0/0"]
+#   source_ranges = ["0.0.0.0/0"] 
 #   depends_on = [google_compute_network.vpc]
 # }
 
@@ -412,16 +398,16 @@ resource "google_compute_firewall" "allow_lb" {
     ports    = ["3000"]
   }
 
-  source_ranges = ["130.211.0.0/22", "35.191.0.0/16"]
-  depends_on = [google_compute_network.vpc]
+  source_ranges = [google_compute_global_address.lb_ipv4_addr.address, "130.211.0.0/22", "35.191.0.0/16"]
+  depends_on = [google_compute_network.vpc, google_compute_global_address.lb_ipv4_addr]
 }
 resource "google_compute_region_instance_template" "compute-csye6225" {
   name        = "my-instance-template"
-  machine_type = "e2-standard-4"
+  machine_type = "e2-small"
   project     = var.project
 
   disk {
-    source_image = "projects/tf-csye-6225-project/global/images/custom-image-with-pubsub-1711567402"
+    source_image = "projects/tf-csye-6225-project/global/images/custom-image-with-pubsub-1712120987"
     disk_size_gb  = 100
     type  = "pd-balanced"
     auto_delete = true
@@ -483,44 +469,56 @@ EOF
     sudo systemctl restart google-cloud-ops-agent
   EOT
 }
-depends_on = [google_sql_database_instance.db_instance_10]
+service_account {
+       email  = google_service_account.my_service_account.email
+       scopes = ["https://www.googleapis.com/auth/cloud-platform", "https://www.googleapis.com/auth/pubsub"]
 }
-resource "google_compute_https_health_check" "health_check" {
+
+depends_on = [
+  google_sql_database_instance.db_instance_10,
+  google_service_account.my_service_account,
+  google_project_iam_binding.logging_admin_binding,
+  google_project_iam_binding.monitoring_metric_writer_binding
+  ]
+}
+resource "google_compute_http_health_check" "health_check" {
   name               = "health-check"
   request_path       = "/healthz"
   port               = 3000
-  check_interval_sec = 40
-  timeout_sec        = 30
-  healthy_threshold  = 6
-  unhealthy_threshold = 6
+  check_interval_sec = 60
+  timeout_sec        = 60
+  healthy_threshold  = 8
+  unhealthy_threshold = 10
   depends_on = [ google_compute_region_instance_template.compute-csye6225]
 }
 
 resource "google_compute_region_autoscaler" "my_autoscaler" {
   name               = "my-autoscaler"
   region             = var.region
-  target             = google_compute_region_instance_group_manager.my_instance_group.id
+  target             = google_compute_region_instance_group_manager.instance_group.id
   autoscaling_policy {
-    min_replicas      = 1
-    max_replicas      = 2
+    min_replicas      = 3
+    max_replicas      = 6
+    cooldown_period   = 150
     cpu_utilization {
-      target = 0.5
+      target = 0.05
     }
   }
+  depends_on = [ google_compute_region_instance_template.compute-csye6225]
 }
 
-resource "google_compute_region_instance_group_manager" "my_instance_group" {
+resource "google_compute_region_instance_group_manager" "instance_group" {
   name               = "my-instance-group"
   base_instance_name = "my-instance"
   project            = var.project
   region             = var.region
   distribution_policy_zones = [ "us-east1-b","us-east1-c","us-east1-d"]
 
-  target_size        = 3
+  target_size        = 1
 
-auto_healing_policies {
-    health_check = google_compute_https_health_check.health_check.id
-    initial_delay_sec = 60
+auto_healing_policies { 
+    health_check = google_compute_http_health_check.health_check.id
+    initial_delay_sec = 150
   }
    version {
     name = "instance-template-version"
@@ -528,7 +526,7 @@ auto_healing_policies {
   }
 
   named_port {
-    name = "https"
+    name = "http"
     port = 3000
   }
   depends_on  = [google_compute_region_instance_template.compute-csye6225]
@@ -536,18 +534,9 @@ auto_healing_policies {
 
 resource "google_compute_global_address" "lb_ipv4_addr" {
   name = "lb-ipv4-addr"
+  ip_version = "IPV4"
+  address_type = "EXTERNAL"
 }
-
-#           self managed SSL certificate
-
-# resource "google_compute_ssl_certificate" "ssl_cert" {
-#   name_prefix = "my-certificate-"
-#   private_key = file("path/to/your/private-key.pem")
-#   certificate = file("path/to/your/certificate.pem")
-#   lifecycle {
-#     create_before_destroy = true
-#   }
-# }
 
 resource "google_compute_managed_ssl_certificate" "managed_cert" {
   name = "managed-cert"
@@ -570,14 +559,16 @@ resource "google_compute_url_map" "url_map" {
 
 resource "google_compute_backend_service" "backend_service" {
   name                  = "backend-service"
-  protocol              = "HTTPS"
-  port_name             = "https"
+  protocol              = "HTTP"
+  port_name             = "http"
   load_balancing_scheme = "EXTERNAL_MANAGED"
-  health_checks         = [google_compute_https_health_check.health_check.self_link]
+  health_checks         = [google_compute_http_health_check.health_check.self_link]
   locality_lb_policy    = "ROUND_ROBIN"
+  timeout_sec           = 150
   backend {
-    group = google_compute_region_instance_group_manager.my_instance_group.instance_group
+    group = google_compute_region_instance_group_manager.instance_group.instance_group
   }
+  depends_on = [ google_compute_region_instance_group_manager.instance_group ]
 }
 
 resource "google_compute_global_forwarding_rule" "forwarding_rule" {
