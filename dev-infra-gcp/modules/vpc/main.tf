@@ -402,7 +402,7 @@ resource "google_compute_firewall" "allow_lb" {
 }
 resource "google_compute_region_instance_template" "compute-csye6225" {
   name        = "my-instance-template"
-  machine_type = "e2-small"
+  machine_type = "e2-standard-2"
   project     = var.project
 
   disk {
