@@ -339,7 +339,7 @@ resource "google_kms_crypto_key" "cloudsql_encryption_key" {
 resource "google_storage_bucket_object" "my_zip_file" {
   name   = "function-final.zip"
   bucket = google_storage_bucket.encrypted_abhinav_bucket.name
-  source = "/Users/para/Downloads/function-source.zip"
+  source = "/Users/abhinav/Documents/NEU_CLASSES/NEU_SEM_2/Cloud_Computing/ass9/function-final.zip"
   depends_on = [google_storage_bucket.encrypted_abhinav_bucket]
 }
 
