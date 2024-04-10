@@ -244,8 +244,8 @@ resource "google_cloudfunctions2_function" "email_function" {
     entry_point = "hello_pubsub"
     source {
       storage_source {
-        bucket = "abhinavp-bucket1"
-        object = "funct-test/function-final.zip"
+        bucket = "encrypted_abhinav_bucket"
+        object = "function-final.zip"
       }
     }
   }
@@ -278,7 +278,7 @@ resource "google_cloudfunctions2_function" "email_function" {
   }
 
   depends_on = [
-    google_vpc_access_connector.connector
+    google_vpc_access_connector.connector, google_storage_bucket_object.my_zip_file
   ]
 }
 ## Google Secret manager
@@ -334,6 +334,13 @@ resource "google_kms_crypto_key" "cloudsql_encryption_key" {
     prevent_destroy = false
   }
   depends_on = [google_kms_key_ring.my_key_ring]
+}
+
+resource "google_storage_bucket_object" "my_zip_file" {
+  name   = "function-final.zip"
+  bucket = google_storage_bucket.encrypted_abhinav_bucket.name
+  source = "/Users/para/Downloads/function-source.zip"
+  depends_on = [google_storage_bucket.encrypted_abhinav_bucket]
 }
 
 resource "google_kms_crypto_key" "bucket_encryption_key" {
