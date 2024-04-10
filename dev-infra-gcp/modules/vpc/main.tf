@@ -69,11 +69,19 @@ resource "google_service_networking_connection" "default" {
   depends_on = [google_compute_network.vpc]
 }
 
+resource "google_project_iam_member" "grant-google-cloud-sql-encrypt-decrypt" {
+  project    = var.project
+  role       = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
+  member     = "serviceAccount:service-938986387663@gcp-sa-cloud-sql.iam.gserviceaccount.com"
+  depends_on = [ google_kms_crypto_key.cloudsql_encryption_key]
+}
+
  resource "google_sql_database_instance" "db_instance_10" {
   name             = "db-instance-10"
   database_version = "MYSQL_8_0"
   region           = var.region
 
+  encryption_key_name = google_kms_crypto_key.cloudsql_encryption_key.id
   settings {
     tier = var.tier
     disk_type = var.disk_type
@@ -89,7 +97,7 @@ resource "google_service_networking_connection" "default" {
     }
   }
   deletion_protection = var.deletion_protection
-  depends_on = [google_service_networking_connection.default]
+  depends_on = [google_service_networking_connection.default, google_project_iam_member.grant-google-cloud-sql-encrypt-decrypt]
 }
 resource "google_sql_database" "mysql_db_1" {
   name     = "webapp"
@@ -119,118 +127,6 @@ resource "random_string" "auth_pswd" {
   numeric = true
   special = false
 }
-
-# resource "google_compute_instance" "compute-csye6225" {
-#   boot_disk {
-#     device_name = "compute-csye6225"
-
-#     initialize_params {
-#       image = "projects/tf-csye-6225-project/global/images/custom-image-with-pubsub-1712120987"
-#       size  = 100
-#       type  = "pd-balanced"
-#     }
-
-#     mode = "READ_WRITE"
-#   }
-
-#   machine_type = "e2-standard-4"
-#   name         = "compute-csye6225"
-#   project      = var.project
-
-#    network_interface {
-#     access_config {
-#       network_tier = "PREMIUM"
-#     }
-#     subnetwork = google_compute_subnetwork.subnet[0].self_link
-#   }
-#  metadata = {
-#   startup-script = <<-EOT
-#     #!/bin/bash
-#     cat <<EOF >> /opt/csye6225/webapp/.env
-#     DATABASE=webapp
-#     SQL_USER=webapp
-#     SQL_PSWD=${random_string.database_pswd.result}
-#     AUTH_USER=test@test.com
-#     AUTH_PSWD=${random_string.auth_pswd.result}
-#     HOST=${google_sql_database_instance.db_instance_10.private_ip_address}
-#     EOF
-#     chown csye6225:csye6225 /opt/csye6225/webapp/.env
-
-#     # Create or update config.yaml
-#     cat <<EOF > /etc/google-cloud-ops-agent/config.yaml
-# logging:
-#  receivers:
-#    my-app-receiver:
-#      type: files
-#      include_paths:
-#        - /var/log/webapp/combined.log
-#      record_log_file_path: true
-#  processors:
-#    my-app-processor:
-#      type: parse_json
-#      time_key: time
-#      time_format: "%Y-%m-%dT%H:%M:%S.%fZ"
-#    move_severity:
-#      type: modify_fields
-#      fields:
-#        severity:
-#          move_from: jsonPayload.level
-#          map_values:
-#            INFO: "info"
-#            ERROR: "error"
-#            WARNING: "warn"
-#            DEBUG: "debug"
-#  service:
-#    pipelines:
-#      default_pipeline:
-#        receivers: [my-app-receiver]
-#        processors: [my-app-processor, move_severity]
-# EOF
-
-#     # Restart google-cloud-ops-agent service
-#     sudo systemctl restart google-cloud-ops-agent
-#   EOT
-# }
-
-#   service_account {
-#        email  = google_service_account.my_service_account.email
-#        scopes = ["https://www.googleapis.com/auth/cloud-platform", "https://www.googleapis.com/auth/pubsub"]
-#   }
-
-#   zone = "us-east1-b"
-#   depends_on = [
-#     google_sql_database_instance.db_instance_10,
-#     google_service_account.my_service_account,
-#     google_project_iam_binding.logging_admin_binding,
-#     google_project_iam_binding.monitoring_metric_writer_binding
-#   ]
-# }
-# resource "google_compute_firewall" "allow_http" {
-#   name    = "allow-http"
-#   network = google_compute_network.vpc.self_link
-#   project = var.project
-
-#   allow {
-#     protocol = "tcp"
-#     ports    = ["3000", "22"]
-#   }
-
-#   source_ranges = ["0.0.0.0/0"] 
-#   depends_on = [google_compute_network.vpc]
-# }
-
-
-# resource "google_dns_record_set" "dns_record" {
-#   name         = "abhinavpandey.tech."
-#   type         = "A"
-#   ttl          = 360
-#   managed_zone = "abhinav-csye6225"
-
-#   rrdatas = [
-#     google_compute_region_instance_template.compute-csye6225.network_interface[0].access_config[0].nat_ip
-#   ]
-#   depends_on = [google_compute_region_instance_template.compute-csye6225]
-# }
 resource "google_dns_record_set" "mx_record" {
   name         = "abhinavpandey.tech."
   type         = "MX"
@@ -385,6 +281,98 @@ resource "google_cloudfunctions2_function" "email_function" {
     google_vpc_access_connector.connector
   ]
 }
+## Google Secret manager
+resource "google_secret_manager_secret" "mysql_pswd" {
+  secret_id = "mysql_pswd"
+ 
+  replication {
+    auto {}
+  }
+}
+ 
+resource "google_secret_manager_secret_version" "secret-version-pass" {
+  secret = google_secret_manager_secret.mysql_pswd.id
+  secret_data = random_string.database_pswd.result 
+}
+resource "google_secret_manager_secret" "mysql_host_ip" {
+  secret_id = "mysql_host_ip"
+ 
+  replication {
+    auto {}
+  }
+}
+ 
+resource "google_secret_manager_secret_version" "secret-version-host" {
+  secret = google_secret_manager_secret.mysql_host_ip.id
+  secret_data = google_sql_database_instance.db_instance_10.private_ip_address
+}
+
+
+## CMEK 
+resource "google_kms_key_ring" "my_key_ring" {
+  name     = "my-key-ring-${formatdate("YYYY-MM-DD_hh-mm-ss", timestamp())}"
+  location = var.region
+}
+
+resource "google_kms_crypto_key" "vm_disk_encryption_key" {
+  name     = "vm-disk-encryption-key"
+  key_ring = google_kms_key_ring.my_key_ring.id
+  rotation_period = "2592000s"
+
+  lifecycle {
+  prevent_destroy = false
+  }
+  depends_on = [google_kms_key_ring.my_key_ring]
+}
+
+
+resource "google_kms_crypto_key" "cloudsql_encryption_key" {
+  name     = "cloudsql-encryption-key"
+  key_ring = google_kms_key_ring.my_key_ring.id
+  rotation_period = "2592000s"
+  lifecycle {
+    prevent_destroy = false
+  }
+  depends_on = [google_kms_key_ring.my_key_ring]
+}
+
+resource "google_kms_crypto_key" "bucket_encryption_key" {
+  name     = "bucket_encryption_key"
+  key_ring = google_kms_key_ring.my_key_ring.id
+  rotation_period = "2592000s"
+  lifecycle {
+    prevent_destroy = false
+  }
+  depends_on = [google_kms_key_ring.my_key_ring]
+}
+
+resource "google_project_iam_member" "grant-google-storage-service-encrypt-decrypt" {
+  project    = var.project
+  role       = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
+  member     = "serviceAccount:service-938986387663@gs-project-accounts.iam.gserviceaccount.com"
+  depends_on = [ google_kms_crypto_key.bucket_encryption_key]
+}
+ 
+ 
+resource "google_storage_bucket" "encrypted_abhinav_bucket" {
+  name     = "encrypted_abhinav_bucket"
+  project  = var.project
+  location = var.region
+ 
+  encryption {
+    default_kms_key_name = google_kms_crypto_key.bucket_encryption_key.id
+  }
+ 
+  depends_on = [google_kms_crypto_key.bucket_encryption_key, google_kms_key_ring.my_key_ring, google_project_iam_member.grant-google-storage-service-encrypt-decrypt]
+}
+
+
+resource "google_project_iam_member" "vm_instance_binding" {
+  project    = var.project
+  role       = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
+  member     = "serviceAccount:service-938986387663@compute-system.iam.gserviceaccount.com"
+  depends_on = [ google_kms_crypto_key.vm_disk_encryption_key]
+}
 
 ## load balancer related code here: 
 resource "google_compute_firewall" "allow_lb" {
@@ -411,6 +399,9 @@ resource "google_compute_region_instance_template" "compute-csye6225" {
     type  = "pd-balanced"
     auto_delete = true
     boot        = true
+    disk_encryption_key {
+      kms_key_self_link = google_kms_crypto_key.vm_disk_encryption_key.id
+    }
   }
 
   network_interface {
@@ -427,8 +418,6 @@ resource "google_compute_region_instance_template" "compute-csye6225" {
     DATABASE=webapp
     SQL_USER=webapp
     SQL_PSWD=${random_string.database_pswd.result}
-    AUTH_USER=test@test.com
-    AUTH_PSWD=${random_string.auth_pswd.result}
     HOST=${google_sql_database_instance.db_instance_10.private_ip_address}
     EOF
     chown csye6225:csye6225 /opt/csye6225/webapp/.env
