@@ -52,3 +52,18 @@ variable "ipv4_enabled" {
 variable "domain_key_record" {
   type = string
 }
+
+
+variable "min_replicas" {
+  type = string
+}
+variable "max_replicas" {
+  type = string
+}
+variable "cpu_util" {
+  type = string
+}
+
+variable "pathtozip"{
+  type = string
+}

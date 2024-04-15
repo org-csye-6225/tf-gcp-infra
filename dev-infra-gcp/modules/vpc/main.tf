@@ -339,7 +339,7 @@ resource "google_kms_crypto_key" "cloudsql_encryption_key" {
 resource "google_storage_bucket_object" "my_zip_file" {
   name   = "function-final.zip"
   bucket = google_storage_bucket.encrypted_abhinav_bucket.name
-  source = "/Users/abhinav/Documents/NEU_CLASSES/NEU_SEM_2/Cloud_Computing/ass9/function-final.zip"
+  source = var.pathtozip
   depends_on = [google_storage_bucket.encrypted_abhinav_bucket]
 }
 
@@ -492,11 +492,11 @@ resource "google_compute_region_autoscaler" "my_autoscaler" {
   region             = var.region
   target             = google_compute_region_instance_group_manager.instance_group.id
   autoscaling_policy {
-    min_replicas      = 3
-    max_replicas      = 6
+    min_replicas      = var.min_replicas
+    max_replicas      = var.max_replicas
     cooldown_period   = 150
     cpu_utilization {
-      target = 0.05
+      target = var.cpu_util
     }
   }
   depends_on = [ google_compute_region_instance_template.compute-csye6225]

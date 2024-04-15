@@ -10,4 +10,8 @@ module "vpc" {
   internet_gateway        = true
   api_key_mailgun         = var.api_key_mailgun
   domain_key_record       = var.domain_key_record
+  min_replicas            = var.min_replicas
+  max_replicas            = var.max_replicas
+  cpu_util                = var.cpu_util
+  pathtozip               = var.pathtozip
 }
